@@ -1,0 +1,328 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default-deny catch-all safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_.-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == '6Xqc0OVRh8UzEfCFDZHRV0d4uOI2' || 
+        (request.auth.token.email == 'shreyankkushwaha@gmail.com' && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true)
+      );
+    }
+    
+    function isSuspendedOrBanned() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isSuspended', false) == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isBanned', false) == true
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().size() <= 16 &&
+        !('email' in data) &&
+        (data.get('isAnonymous', true) is bool) &&
+        (data.get('displayName', '') is string) && (data.get('displayName', '').size() <= 100) &&
+        (data.get('photoURL', '') is string) && (data.get('photoURL', '').size() <= 1000) &&
+        (data.get('bio', '') is string) && (data.get('bio', '').size() <= 500) &&
+        (data.get('notificationSettings', {}) is map) &&
+        (data.get('handle', '') is string) && (data.get('handle', '').size() <= 100) &&
+        (data.get('isAdmin', false) == false || isAdmin()) &&
+        (data.get('isSuspended', false) == false) &&
+        (data.get('isBanned', false) == false);
+    }
+    function isValidUserUpdate(data) {
+      return data.keys().size() <= 16 &&
+        (!('email' in data) || data.email == resource.data.get('email', '')) &&
+        (data.get('isAnonymous', true) is bool) &&
+        (data.get('displayName', '') is string) && (data.get('displayName', '').size() <= 100) &&
+        (data.get('photoURL', '') is string) && (data.get('photoURL', '').size() <= 1000) &&
+        (data.get('bio', '') is string) && (data.get('bio', '').size() <= 500) &&
+        (data.get('notificationSettings', {}) is map) &&
+        (data.get('handle', '') is string) && (data.get('handle', '').size() <= 100) &&
+        (data.get('isAdmin', false) is bool) &&
+        (data.get('isSuspended', false) is bool) &&
+        (data.get('isBanned', false) is bool);
+    }
+    function isValidReport(data) {
+      return data.keys().hasAll(['authorId', 'author', 'title', 'content', 'category', 'lat', 'lng', 'status', 'trustScore', 'confirms', 'falses', 'upvotes', 'createdAt', 'updatedAt']) &&
+        data.keys().size() <= 35 &&
+        data.authorId is string && data.authorId.size() <= 128 &&
+        data.author is string && data.author.size() <= 100 &&
+        data.title is string && data.title.size() <= 255 &&
+        data.content is string && data.content.size() <= 5000 &&
+        data.category is string && data.category.size() <= 50 &&
+        data.lat is number &&
+        data.lng is number &&
+        data.status in ['Pending', 'Under Review', 'Solved', 'Rejected', 'In Progress', 'Complete', 'Withdrawn'] &&
+        data.trustScore is number &&
+        data.confirms is number &&
+        data.falses is number &&
+        data.upvotes is number &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        (data.get('address', '') is string) && (data.get('address', '').size() <= 500) &&
+        (data.get('authorAvatar', '') is string) && (data.get('authorAvatar', '').size() <= 1000) &&
+        (data.get('imageUrl', null) == null || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+        (data.get('videoUrl', null) == null || (data.videoUrl is string && data.videoUrl.size() <= 1000)) &&
+        (data.get('imageUrls', []) is list) &&
+        (data.get('confirmUsers', []) is list) &&
+        (data.get('falseUsers', []) is list) &&
+        (data.get('upvoteUsers', []) is list) &&
+        (data.get('commentCount', 0) is number) &&
+        (data.get('statusUpdates', []) is list) &&
+        (data.get('needsAdminReview', false) is bool) &&
+        (data.get('aiReviewNote', '') is string) && (data.get('aiReviewNote', '').size() <= 500) &&
+        (data.get('authorHandle', '') is string) && (data.get('authorHandle', '').size() <= 100);
+    }
+    function isValidReportUpdate(data) {
+      return data.keys().size() <= 35 &&
+        data.title is string && data.title.size() <= 255 &&
+        data.content is string && data.content.size() <= 5000 &&
+        data.category is string && data.category.size() <= 50 &&
+        data.lat is number &&
+        data.lng is number &&
+        data.status in ['Pending', 'In Progress', 'Complete', 'Under Review', 'Solved', 'Rejected', 'Withdrawn'] &&
+        (data.get('trustScore', 0) is number) &&
+        (data.get('confirms', 0) is number) &&
+        (data.get('falses', 0) is number) &&
+        (data.get('upvotes', 0) is number) &&
+        data.updatedAt == request.time &&
+        (data.get('author', '') is string) && (data.get('author', '').size() <= 100) &&
+        (data.get('authorAvatar', '') is string) && (data.get('authorAvatar', '').size() <= 1000) &&
+        (data.get('address', '') is string) && (data.get('address', '').size() <= 500) &&
+        (data.get('imageUrl', null) == null || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+        (data.get('videoUrl', null) == null || (data.videoUrl is string && data.videoUrl.size() <= 1000)) &&
+        (data.get('imageUrls', []) is list) &&
+        (data.get('confirmUsers', []) is list) &&
+        (data.get('falseUsers', []) is list) &&
+        (data.get('upvoteUsers', []) is list) &&
+        (data.get('commentCount', 0) is number) &&
+        (data.get('statusUpdates', []) is list) &&
+        (data.get('needsAdminReview', false) is bool) &&
+        (data.get('aiReviewNote', '') is string) && (data.get('aiReviewNote', '').size() <= 500) &&
+        (data.get('authorHandle', '') is string) && (data.get('authorHandle', '').size() <= 100);
+    }
+    function isValidComment(data) {
+      return data.keys().hasAll(['author', 'authorId', 'text', 'createdAt', 'updatedAt']) &&
+        data.keys().size() <= 10 &&
+        data.author is string && data.author.size() <= 100 &&
+        data.authorId is string && data.authorId.size() <= 128 &&
+        data.text is string && data.text.size() <= 2000 &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time &&
+        (data.get('authorAvatar', '') is string) && (data.get('authorAvatar', '').size() <= 1000) &&
+        (data.get('parentId', null) == null || (data.parentId is string && data.parentId.size() <= 128)) &&
+        (data.get('authorHandle', '') is string) && (data.get('authorHandle', '').size() <= 100);
+    }
+    function isValidCommentUpdate(data) {
+      return data.keys().size() <= 10 &&
+        data.text is string && data.text.size() <= 2000 &&
+        (data.get('author', '') is string) && (data.get('author', '').size() <= 100) &&
+        (data.get('authorAvatar', '') is string) && (data.get('authorAvatar', '').size() <= 1000) &&
+        (data.get('authorHandle', '') is string) && (data.get('authorHandle', '').size() <= 100) &&
+        data.updatedAt == request.time;
+    }
+    match /{path=**}/comments/{commentId} {
+      allow read: if true;
+    }
+
+    match /test/{docId} {
+      allow read: if true;
+    }
+    
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isValidId(userId) && isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isValidId(userId) && isSignedIn() && (
+        (
+          request.auth.uid == userId &&
+          isValidUserUpdate(incoming()) &&
+          incoming().get('createdAt', null) == existing().get('createdAt', null) &&
+          incoming().get('isAdmin', false) == existing().get('isAdmin', false) &&
+          incoming().get('isSuspended', false) == existing().get('isSuspended', false) &&
+          incoming().get('isBanned', false) == existing().get('isBanned', false)
+        ) || isAdmin()
+      );
+      allow delete: if false; 
+    }
+
+    match /usernames/{handle} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(handle) &&
+        incoming().keys().hasAll(['uid', 'createdAt']) &&
+        incoming().keys().size() <= 4 &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isSignedIn() && (isAdmin() || existing().uid == request.auth.uid);
+    }
+    
+    match /reports/{reportId} {
+      allow read: if true; 
+      allow create: if !isSuspendedOrBanned() && isValidId(reportId) && 
+        (incoming().authorId == 'guest' || incoming().authorId.matches('^(Guest|u_).*$') || (isSignedIn() && incoming().authorId == request.auth.uid)) &&
+        isValidReport(incoming()) &&
+        incoming().trustScore == 0 &&
+        incoming().confirms == 0 &&
+        incoming().falses == 0 &&
+        incoming().upvotes == 0;
+        
+      allow update: if isValidId(reportId) &&
+        (
+          isAdmin() || (
+            !isSuspendedOrBanned() &&
+            isValidReportUpdate(incoming()) &&
+            incoming().authorId == existing().authorId &&
+            incoming().createdAt == existing().createdAt &&
+            (
+              // 1. Author update: Author can update content, but cannot directly manipulate trust/confirms/falses/upvotes
+              (
+                isSignedIn() && existing().authorId == request.auth.uid &&
+                incoming().trustScore == existing().trustScore &&
+                incoming().confirms == existing().confirms &&
+                incoming().falses == existing().falses &&
+                incoming().upvotes == existing().upvotes &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'lat', 'lng', 'status', 'updatedAt', 'imageUrl', 'imageUrls', 'videoUrl', 'address', 'commentCount', 'author', 'authorAvatar', 'authorHandle', 'statusUpdates', 'needsAdminReview', 'aiReviewNote'])
+              ) ||
+              // 2. Interaction update: Community voting/verification/upvotes and comment counts
+              (
+                incoming().diff(existing()).affectedKeys().hasOnly(['upvotes', 'confirms', 'falses', 'upvoteUsers', 'confirmUsers', 'falseUsers', 'trustScore', 'status', 'statusUpdates', 'commentCount', 'updatedAt'])
+              )
+            )
+          )
+        );
+        
+      allow delete: if isValidId(reportId) && (isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid));
+      
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if !isSuspendedOrBanned() && isValidId(commentId) && 
+          (incoming().authorId == 'guest' || incoming().authorId.matches('^(Guest|u_).*$') || (isSignedIn() && incoming().authorId == request.auth.uid)) &&
+          isValidComment(incoming());
+          
+        allow update: if isValidId(commentId) &&
+          (isAdmin() || (!isSuspendedOrBanned() && 
+            isSignedIn() && existing().authorId == request.auth.uid &&
+            incoming().authorId == existing().authorId &&
+            isValidCommentUpdate(incoming()) &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['text', 'updatedAt', 'author', 'authorAvatar', 'authorHandle'])
+          ));
+          
+        allow delete: if isValidId(commentId) && (isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid));
+      }
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'type', 'priority', 'message', 'isRead', 'createdAt']) &&
+        data.keys().size() <= 8 &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.type is string && data.type in ['report_updates', 'verification_activity', 'comments_mentions', 'nearby_reports', 'community_events'] &&
+        data.priority is string && data.priority in ['P0', 'P1', 'P2'] &&
+        data.message is string && data.message.size() <= 1000 &&
+        data.isRead is bool &&
+        data.createdAt == request.time &&
+        (data.get('relatedReportId', null) == null || (data.relatedReportId is string && data.relatedReportId.size() <= 128)) &&
+        (data.get('imageUrl', null) == null || (data.imageUrl is string && data.imageUrl.size() <= 1000));
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId); 
+      allow create: if !isSuspendedOrBanned() && isValidNotification(incoming()); 
+      allow update: if (isAdmin() || (isSignedIn() && request.auth.uid == existing().userId)) && incoming().diff(existing()).affectedKeys().hasOnly(['isRead']);
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == existing().userId);
+    }
+    match /app_settings/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /x_authorities/{authId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    function isValidMedia(data) {
+      return data.keys().hasAll(['contentType', 'base64Data', 'createdAt']) &&
+        data.keys().hasOnly(['contentType', 'base64Data', 'createdAt', 'fileName', 'authorId']) &&
+        data.contentType is string && data.contentType.size() <= 100 && data.contentType.matches('^image/.*$') &&
+        data.base64Data is string && data.base64Data.size() > 0 && data.base64Data.size() <= 950000 &&
+        (data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 64)) &&
+        (data.get('fileName', '') is string && data.get('fileName', '').size() <= 255) &&
+        (data.get('authorId', '') is string && data.get('authorId', '').size() <= 128);
+    }
+
+    match /reports_media/{mediaId} {
+      allow read: if true;
+      allow create: if !isSuspendedOrBanned() && isValidId(mediaId) && isValidMedia(incoming());
+      allow update: if false;
+      allow delete: if isValidId(mediaId) && (isAdmin() || (isSignedIn() && existing().get('authorId', '') == request.auth.uid));
+    }
+
+    function isValidSupportTicket(data) {
+      return data.keys().hasAll(['userId', 'name', 'email', 'topic', 'subject', 'message', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['userId', 'name', 'email', 'topic', 'subject', 'message', 'relatedReportId', 'status', 'adminNote', 'createdAt', 'updatedAt']) &&
+        data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.topic is string && data.topic in ['General Help', 'Report Issue / Moderation', 'Account & Verification', 'Bug Report', 'Feature Suggestion', 'Privacy / Data Request'] &&
+        data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200 &&
+        data.message is string && data.message.size() >= 10 && data.message.size() <= 3000 &&
+        (data.get('relatedReportId', '') is string) && (data.get('relatedReportId', '').size() <= 128) &&
+        data.status is string && data.status in ['Open', 'In Review', 'Resolved', 'Closed'] &&
+        (data.get('adminNote', '') is string) && (data.get('adminNote', '').size() <= 1000) &&
+        data.createdAt == request.time &&
+        data.updatedAt == request.time;
+    }
+
+    function isValidSupportTicketUpdate(data) {
+      return data.keys().hasAll(['userId', 'name', 'email', 'topic', 'subject', 'message', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['userId', 'name', 'email', 'topic', 'subject', 'message', 'relatedReportId', 'status', 'adminNote', 'createdAt', 'updatedAt']) &&
+        data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.topic is string && data.topic in ['General Help', 'Report Issue / Moderation', 'Account & Verification', 'Bug Report', 'Feature Suggestion', 'Privacy / Data Request'] &&
+        data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200 &&
+        data.message is string && data.message.size() >= 10 && data.message.size() <= 3000 &&
+        (data.get('relatedReportId', '') is string) && (data.get('relatedReportId', '').size() <= 128) &&
+        data.status is string && data.status in ['Open', 'In Review', 'Resolved', 'Closed'] &&
+        (data.get('adminNote', '') is string) && (data.get('adminNote', '').size() <= 1000) &&
+        data.updatedAt == request.time;
+    }
+
+    match /support_tickets/{ticketId} {
+      allow get: if isValidId(ticketId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if !isSuspendedOrBanned() && isValidId(ticketId) &&
+        (incoming().userId == 'guest' || incoming().userId.matches('^u_.*$') || (isSignedIn() && incoming().userId == request.auth.uid)) &&
+        isValidSupportTicket(incoming()) &&
+        incoming().status == 'Open' &&
+        incoming().get('adminNote', '') == '';
+      allow update: if isValidId(ticketId) && isAdmin() &&
+        isValidSupportTicketUpdate(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+      allow delete: if isValidId(ticketId) && isAdmin();
+    }
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Public user profile representation in the system (no private PII like email)",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "maxLength": 100 },
+        "photoURL": { "type": "string", "maxLength": 1000 },
+        "handle": { "type": "string", "maxLength": 100 },
+        "bio": { "type": "string", "maxLength": 500 },
+        "isAnonymous": { "type": "boolean" },
+        "notificationSettings": { "type": "object" },
+        "isAdmin": { "type": "boolean" },
+        "isSuspended": { "type": "boolean" },
+        "isBanned": { "type": "boolean" }
+      }
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Civic issue report created by a community member",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string", "maxLength": 128 },
+        "author": { "type": "string", "maxLength": 100 },
+        "authorAvatar": { "type": "string", "maxLength": 1000 },
+        "authorHandle": { "type": "string", "maxLength": 100 },
+        "isAnonymous": { "type": "boolean" },
+        "title": { "type": "string", "maxLength": 255 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "category": { "type": "string", "maxLength": 50 },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "address": { "type": "string", "maxLength": 500 },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Under Review", "Solved", "Rejected", "In Progress", "Complete", "Withdrawn"]
+        },
+        "trustScore": { "type": "number" },
+        "confirms": { "type": "number" },
+        "falses": { "type": "number" },
+        "upvotes": { "type": "number" },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "imageUrls": { "type": "array" },
+        "videoUrl": { "type": "string", "maxLength": 1000 },
+        "confirmUsers": { "type": "array" },
+        "falseUsers": { "type": "array" },
+        "upvoteUsers": { "type": "array" },
+        "commentCount": { "type": "number" },
+        "statusUpdates": { "type": "array" },
+        "needsAdminReview": { "type": "boolean" },
+        "aiReviewNote": { "type": "string", "maxLength": 500 },
+        "xPostText": { "type": "string", "maxLength": 1000 },
+        "xPostAuthority": { "type": "string", "maxLength": 200 },
+        "xPostStatus": { "type": "string", "maxLength": 100 },
+        "xPostId": { "type": "string", "maxLength": 128 },
+        "xPostError": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "author", "title", "content", "category", "lat", "lng", "status", "trustScore", "confirms", "falses", "upvotes", "createdAt", "updatedAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comment on a civic report",
+      "type": "object",
+      "properties": {
+        "author": { "type": "string", "maxLength": 100 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "authorAvatar": { "type": "string", "maxLength": 1000 },
+        "authorHandle": { "type": "string", "maxLength": 100 },
+        "text": { "type": "string", "maxLength": 2000 },
+        "parentId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["author", "authorId", "text", "createdAt", "updatedAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notification for reports, verifications, and comments",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": {
+          "type": "string",
+          "enum": ["report_updates", "verification_activity", "comments_mentions", "nearby_reports", "community_events"]
+        },
+        "priority": { "type": "string", "enum": ["P0", "P1", "P2"] },
+        "message": { "type": "string", "maxLength": 1000 },
+        "isRead": { "type": "boolean" },
+        "relatedReportId": { "type": "string", "maxLength": 128 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "priority", "message", "isRead", "createdAt"]
+    },
+    "Username": {
+      "title": "Username",
+      "description": "Unique username handle registry",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "createdAt"]
+    },
+    "ReportMedia": {
+      "title": "ReportMedia",
+      "description": "Compressed image binary fallback storage for civic reports",
+      "type": "object",
+      "properties": {
+        "contentType": { "type": "string", "maxLength": 100 },
+        "base64Data": { "type": "string", "maxLength": 950000 },
+        "fileName": { "type": "string", "maxLength": 255 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["contentType", "base64Data", "createdAt"]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Citizen support inquiry, bug report, or moderation help ticket",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 200 },
+        "topic": {
+          "type": "string",
+          "enum": ["General Help", "Report Issue / Moderation", "Account & Verification", "Bug Report", "Feature Suggestion", "Privacy / Data Request"],
+          "maxLength": 60
+        },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 3000 },
+        "relatedReportId": { "type": "string", "maxLength": 128 },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "In Review", "Resolved", "Closed"]
+        },
+        "adminNote": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "email", "topic", "subject", "message", "status", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile collection"
+    },
+    "/usernames/{handle}": {
+      "schema": "Username",
+      "description": "Atomic unique username handle reservations"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Civic issue reports collection"
+    },
+    "/reports/{reportId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Nested comments on a report"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notification inbox"
+    },
+    "/reports_media/{mediaId}": {
+      "schema": "ReportMedia",
+      "description": "Fallback compressed image storage for reports"
+    },
+    "/support_tickets/{ticketId}": {
+      "schema": "SupportTicket",
+      "description": "Citizen support tickets and admin responses"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "Civisha",
+  "description": "Report, verify, and track local civic issues in real time with community-driven accountability, live radar maps, and civic impact analytics on Civisha.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

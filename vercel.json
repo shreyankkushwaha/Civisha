@@ -1,0 +1,40 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index?path=/api/$1"
+    },
+    {
+      "source": "/report/(.*)",
+      "destination": "/api/index?path=/report/$1"
+    },
+    {
+      "source": "/u/(.*)",
+      "destination": "/api/index?path=/u/$1"
+    },
+    {
+      "source": "/area/(.*)",
+      "destination": "/api/index?path=/area/$1"
+    },
+    {
+      "source": "/(radar|journal|about|how-it-works|support|terms|privacy)",
+      "destination": "/api/index?path=/$1"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/index?path=/sitemap.xml"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/index?path=/robots.txt"
+    },
+    {
+      "source": "/",
+      "destination": "/api/index?path=/"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
